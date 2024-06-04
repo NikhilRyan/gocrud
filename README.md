@@ -18,7 +18,7 @@ This library provides a dynamic CRUD interface that allows users to perform oper
 ### Installation
 Clone the repository:
 ```sh
-git clone https://github.com/nikhilryan5/gocrud.git
+git clone https://github.com/nikhilryan/gocrud.git
 cd gocrud
 ```
 
