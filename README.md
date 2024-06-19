@@ -61,9 +61,9 @@ curl -X POST "http://localhost:8080/create" -H "Content-Type: application/json" 
 ```sh
 curl -X GET "http://localhost:8080/read" -H "Content-Type: application/json" -d '{
     "table": "users",
-    "key": "id",
-    "data": {
-        "id": 1
+    "conditions": {
+        "age": 30,
+        "name": "John Doe"
     }
 }'
 ```
