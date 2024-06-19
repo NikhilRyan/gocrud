@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"gocrud/pkg/crud"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,12 +27,12 @@ func CreateHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := db.CreateTable(req.Table, req.Data); err != nil {
+		if err := crud.CreateTable(db, req.Table, req.Data); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		if err := db.InsertData(req.Table, req.Data); err != nil {
+		if err := crud.InsertData(db, req.Table, req.Data); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}

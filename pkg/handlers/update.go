@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"gocrud/pkg/crud"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,7 @@ func UpdateHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := db.UpdateData(req.Table, req.Key, req.Data); err != nil {
+		if err := crud.UpdateData(db, req.Table, req.Key, req.Data); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}

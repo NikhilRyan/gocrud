@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"gocrud/pkg/crud"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,7 @@ func DeleteHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := db.DeleteData(req.Table, req.Key); err != nil {
+		if err := crud.DeleteData(db, req.Table, req.Key); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
