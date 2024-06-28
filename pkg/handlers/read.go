@@ -3,13 +3,14 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"gocrud/pkg/crud"
+	"gocrud/pkg/models"
 	"gorm.io/gorm"
 	"net/http"
 )
 
 func ReadHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req crud.QueryRequest
+		var req models.QueryRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

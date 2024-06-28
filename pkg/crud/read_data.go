@@ -3,22 +3,13 @@ package crud
 import (
 	"fmt"
 	"github.com/patrickmn/go-cache"
+	"gocrud/pkg/models"
 	"gorm.io/gorm"
 	"reflect"
 	"strings"
 )
 
-type QueryRequest struct {
-	Table      string                 `json:"table" binding:"required"`
-	Columns    []string               `json:"columns"`
-	Conditions map[string]interface{} `json:"conditions"`
-	OrderBy    []string               `json:"order_by"`
-	Limit      int                    `json:"limit"`
-	Offset     int                    `json:"offset"`
-	Struct     interface{}            `json:"struct"`
-}
-
-func ReadData(db *gorm.DB, req *QueryRequest) (interface{}, error) {
+func ReadData(db *gorm.DB, req *models.QueryRequest) (interface{}, error) {
 	cacheKey := fmt.Sprintf("%v", req)
 	if cachedResult, found := c.Get(cacheKey); found {
 		return cachedResult, nil
@@ -67,20 +58,4 @@ func ReadData(db *gorm.DB, req *QueryRequest) (interface{}, error) {
 	c.Set(cacheKey, result, cache.DefaultExpiration)
 
 	return result, nil
-}
-
-func getStructFields(obj interface{}) string {
-	t := reflect.TypeOf(obj)
-	var fields []string
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		tag := field.Tag.Get("gorm")
-		if tag != "" && strings.HasPrefix(tag, "column:") {
-			columns := strings.Split(tag, ":")
-			fields = append(fields, columns[1])
-		} else {
-			fields = append(fields, field.Name)
-		}
-	}
-	return strings.Join(fields, ", ")
 }

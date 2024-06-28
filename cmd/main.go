@@ -25,8 +25,12 @@ func main() {
 	router := gin.Default()
 	router.POST("/create", handlers.CreateHandler(db))
 	router.GET("/read", handlers.ReadHandler(db))
+	router.POST("/read-with-joins", handlers.ReadWithJoinsHandler(db))
 	router.PUT("/update", handlers.UpdateHandler(db))
 	router.DELETE("/delete", handlers.DeleteHandler(db))
 
-	router.Run(":8080")
+	err = router.Run(":8080")
+	if err != nil {
+		return
+	}
 }

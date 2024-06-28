@@ -1,46 +1,9 @@
-# GoCRUD
-
-## Overview
-This library provides a dynamic CRUD interface that allows users to perform operations without writing any code, just by providing the table name and key.
-
-## Features
-- Dynamic table creation
-- Insert, read, update, and delete operations
-- Configurable via simple JSON requests
-- RESTful API built with Gin and GORM
-
-## Getting Started
-
-### Prerequisites
-- Go 1.17 or later
-- Docker (optional, for containerization)
-
-### Installation
-Clone the repository:
-```sh
-git clone https://github.com/nikhilryan/gocrud.git
-cd gocrud
-```
-
-## Running the application
-
-### Using Go
-```sh
-go mod download
-go build -o main ./cmd/main.go
-./main
-```
-
-### Using Docker
-```sh
-docker build -t gocrud .
-docker run -p 8080:8080 gocrud
-```
 
 ### Usage
 Send JSON requests to the endpoints:
 - POST `/create`
 - GET `/read`
+- POST `/read-with-joins`
 - PUT `/update`
 - DELETE `/delete`
 
@@ -51,13 +14,13 @@ curl -X POST "http://localhost:8080/create" -H "Content-Type: application/json" 
     "table": "users",
     "key": "id",
     "data": {
-        "name": "Nikhil",
-        "age": 32
+        "name": "John Doe",
+        "age": 30
     }
 }'
 ```
 
-#### Read
+#### Read with Conditions, Order By, Limit, Offset, and Struct (with Caching)
 ```sh
 curl -X GET "http://localhost:8080/read" -H "Content-Type: application/json" -d '{
     "table": "users",
@@ -67,7 +30,44 @@ curl -X GET "http://localhost:8080/read" -H "Content-Type: application/json" -d 
     "order_by": ["name ASC", "age DESC"],
     "limit": 10,
     "offset": 5,
-    "struct": {"ID": 1, "Name": "Nikhil", "Age": 32}
+    "struct": {"ID": 0, "Name": "", "Age": 0}
+}'
+```
+
+#### Read with Joins, Conditions, Order By, Limit, Offset, and Struct (with Caching)
+```sh
+curl -X POST "http://localhost:8080/read-with-joins" -H "Content-Type: application/json" -d '{
+    "table": "orders",
+    "joins": [
+        {
+            "join_type": "INNER",
+            "table": "users",
+            "on_condition": "orders.user_id = users.id",
+            "selects": ["users.name", "users.email"],
+            "conditions": {
+                "users.age": 30
+            }
+        },
+        {
+            "join_type": "LEFT",
+            "table": "products",
+            "on_condition": "orders.product_id = products.id",
+            "selects": ["products.name as product_name"],
+            "conditions": {
+                "products.price >": 100
+            }
+        }
+    ],
+    "columns": ["orders.id", "orders.total"],
+    "conditions": {
+        "orders.status": "completed",
+        "orders.created_at >": "2022-01-01",
+        "orders.note LIKE": "%urgent%"
+    },
+    "order_by": ["orders.date DESC"],
+    "limit": 10,
+    "offset": 5,
+    "struct": {"OrderID": 0, "Total": 0, "Name": "", "Email": "", "ProductName": ""}
 }'
 ```
 
@@ -78,8 +78,8 @@ curl -X PUT "http://localhost:8080/update" -H "Content-Type: application/json" -
     "key": "id",
     "data": {
         "id": 1,
-        "name": "Nikhil",
-        "age": 32
+        "name": "Jane Doe",
+        "age": 25
     }
 }'
 ```
@@ -95,10 +95,85 @@ curl -X DELETE "http://localhost:8080/delete" -H "Content-Type: application/json
 }'
 ```
 
-### LICENSE
+### Running Tests
+Unit tests are provided to verify the functionality of each handler. The test files are located in the `pkg/handlers` directory.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#### Run All Tests
+```sh
+go test ./...
+```
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#### Test Cases for ReadWithJoinsHandler
+```go
+package handlers
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+import (
+    "testing"
+    "net/http"
+    "net/http/httptest"
+    "bytes"
+    "github.com/gin-gonic/gin"
+    "github.com/stretchr/testify/assert"
+    "gorm.io/driver/sqlite"
+    "gorm.io/gorm"
+    "gocrud/pkg/crud"
+)
+
+type OrderWithUser struct {
+    OrderID     int    `gorm:"column:order_id"`
+    Total       int    `gorm:"column:total"`
+    Name        string `gorm:"column:name"`
+    Email       string `gorm:"column:email"`
+    ProductName string `gorm:"column:product_name"`
+}
+
+func TestReadWithJoinsHandler(t *testing.T) {
+    // Setup
+    db, _ := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+    
+    router := gin.Default()
+    router.POST("/read-with-joins", ReadWithJoinsHandler(db))
+
+    // Test case
+    reqBody := `{
+        "table": "orders",
+        "joins": [
+            {
+                "join_type": "INNER",
+                "table": "users",
+                "on_condition": "orders.user_id = users.id",
+                "selects": ["users.name", "users.email"],
+                "conditions": {
+                    "users.age": 30
+                }
+            },
+            {
+                "join_type": "LEFT",
+                "table": "products",
+                "on_condition": "orders.product_id = products.id",
+                "selects": ["products.name as product_name"],
+                "conditions": {
+                    "products.price >": 100
+                }
+            }
+        ],
+        "columns": ["orders.id", "orders.total"],
+        "conditions": {
+            "orders.status": "completed",
+            "orders.created_at >": "2022-01-01",
+            "orders.note LIKE": "%urgent%"
+        },
+        "order_by": ["orders.date DESC"],
+        "limit": 10,
+        "offset": 5,
+        "struct": OrderWithUser{}
+    }`
+    req, _ := http.NewRequest("POST", "/read-with-joins", bytes.NewBufferString(reqBody))
+    req.Header.Set("Content-Type", "application/json")
+    
+    w := httptest.NewRecorder()
+    router.ServeHTTP(w, req)
+
+    assert.Equal(t, http.StatusOK, w.Code)
+}
+```
