@@ -1,11 +1,13 @@
 package main
 
 import (
-	"gocrud/pkg/handlers"
-
 	"github.com/gin-gonic/gin"
+	"github.com/patrickmn/go-cache"
+	"gocrud/pkg/crud"
+	"gocrud/pkg/handlers"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"time"
 )
 
 var db *gorm.DB
@@ -16,6 +18,9 @@ func main() {
 	if err != nil {
 		panic("failed to connect database")
 	}
+
+	// Initialize cache
+	crud.InitCache(cache.DefaultExpiration, 10*time.Minute)
 
 	router := gin.Default()
 	router.POST("/create", handlers.CreateHandler(db))

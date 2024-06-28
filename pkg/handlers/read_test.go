@@ -11,6 +11,12 @@ import (
 	"testing"
 )
 
+type User struct {
+	ID   int    `gorm:"column:id"`
+	Name string `gorm:"column:name"`
+	Age  int    `gorm:"column:age"`
+}
+
 func TestReadHandler(t *testing.T) {
 	// Setup
 	db, _ := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
@@ -19,7 +25,14 @@ func TestReadHandler(t *testing.T) {
 	router.GET("/read", ReadHandler(db))
 
 	// Test case
-	reqBody := `{"table": "users", "conditions": {"age": 30, "name": "John Doe"}}`
+	reqBody := `{
+        "table": "users",
+        "conditions": {"age": 30},
+        "order_by": ["name ASC", "age DESC"],
+        "limit": 10,
+        "offset": 5,
+        "struct": User{}
+    }`
 	req, _ := http.NewRequest("GET", "/read", bytes.NewBufferString(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 

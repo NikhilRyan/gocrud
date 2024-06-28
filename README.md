@@ -51,8 +51,8 @@ curl -X POST "http://localhost:8080/create" -H "Content-Type: application/json" 
     "table": "users",
     "key": "id",
     "data": {
-        "name": "John Doe",
-        "age": 30
+        "name": "Nikhil",
+        "age": 32
     }
 }'
 ```
@@ -62,9 +62,12 @@ curl -X POST "http://localhost:8080/create" -H "Content-Type: application/json" 
 curl -X GET "http://localhost:8080/read" -H "Content-Type: application/json" -d '{
     "table": "users",
     "conditions": {
-        "age": 30,
-        "name": "John Doe"
-    }
+        "age": 30
+    },
+    "order_by": ["name ASC", "age DESC"],
+    "limit": 10,
+    "offset": 5,
+    "struct": {"ID": 1, "Name": "Nikhil", "Age": 32}
 }'
 ```
 
@@ -75,8 +78,8 @@ curl -X PUT "http://localhost:8080/update" -H "Content-Type: application/json" -
     "key": "id",
     "data": {
         "id": 1,
-        "name": "Jane Doe",
-        "age": 25
+        "name": "Nikhil",
+        "age": 32
     }
 }'
 ```
