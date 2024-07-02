@@ -95,6 +95,11 @@ curl -X DELETE "http://localhost:8080/delete" -H "Content-Type: application/json
 }'
 ```
 
+#### Get Column Info
+```sh
+curl -X GET "http://localhost:8080/columns?table=users"
+```
+
 ### Running Tests
 Unit tests are provided to verify the functionality of each handler. The test files are located in the `pkg/handlers` directory.
 
