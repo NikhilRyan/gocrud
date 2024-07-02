@@ -15,16 +15,25 @@ func ReadData(db *gorm.DB, req *models.QueryRequest) (interface{}, error) {
 		return cachedResult, nil
 	}
 
-	result := reflect.New(reflect.TypeOf(req.Struct)).Interface()
+	resultType := reflect.TypeOf(req.Struct)
+	if resultType.Kind() == reflect.Ptr {
+		resultType = resultType.Elem()
+	}
+	resultSlice := reflect.MakeSlice(reflect.SliceOf(resultType), 0, 0)
+	result := reflect.New(resultSlice.Type()).Interface()
+
 	var conditionStrings []string
 	var params []interface{}
 
 	for key, value := range req.Conditions {
-		conditionStrings = append(conditionStrings, fmt.Sprintf("%s = ?", key))
+		if strings.Contains(key, " LIKE ") {
+			conditionStrings = append(conditionStrings, fmt.Sprintf("%s ?", key))
+		} else {
+			conditionStrings = append(conditionStrings, fmt.Sprintf("%s = ?", key))
+		}
 		params = append(params, value)
 	}
 
-	// Infer columns from struct if provided
 	columnsQuery := "*"
 	if req.Struct != nil {
 		columnsQuery = getStructFields(req.Struct)
@@ -37,12 +46,10 @@ func ReadData(db *gorm.DB, req *models.QueryRequest) (interface{}, error) {
 		query = fmt.Sprintf("%s WHERE %s", query, strings.Join(conditionStrings, " AND "))
 	}
 
-	// Order by
 	if len(req.OrderBy) > 0 {
 		query = fmt.Sprintf("%s ORDER BY %s", query, strings.Join(req.OrderBy, ", "))
 	}
 
-	// Limit and offset
 	if req.Limit > 0 {
 		query = fmt.Sprintf("%s LIMIT %d", query, req.Limit)
 	}

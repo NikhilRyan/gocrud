@@ -15,11 +15,16 @@ func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error
 		return cachedResult, nil
 	}
 
-	result := reflect.New(reflect.TypeOf(req.Struct)).Interface()
+	resultType := reflect.TypeOf(req.Struct)
+	if resultType.Kind() == reflect.Ptr {
+		resultType = resultType.Elem()
+	}
+	resultSlice := reflect.MakeSlice(reflect.SliceOf(resultType), 0, 0)
+	result := reflect.New(resultSlice.Type()).Interface()
+
 	var conditionStrings []string
 	var params []interface{}
 
-	// Base table conditions
 	for key, value := range req.Conditions {
 		if strings.Contains(key, " LIKE ") {
 			conditionStrings = append(conditionStrings, fmt.Sprintf("%s ?", key))
@@ -29,7 +34,6 @@ func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error
 		params = append(params, value)
 	}
 
-	// Select specific columns or all columns from base table
 	columnsQuery := "*"
 	if req.Struct != nil {
 		columnsQuery = getStructFields(req.Struct)
@@ -49,7 +53,6 @@ func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error
 
 	query := fmt.Sprintf("SELECT %s FROM %s", columnsQuery, req.Table)
 
-	// Join clauses
 	for _, join := range req.Joins {
 		joinConditionStrings := []string{}
 		for key, value := range join.Conditions {
@@ -73,12 +76,10 @@ func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error
 		query = fmt.Sprintf("%s WHERE %s", query, strings.Join(conditionStrings, " AND "))
 	}
 
-	// Order by
 	if len(req.OrderBy) > 0 {
 		query = fmt.Sprintf("%s ORDER BY %s", query, strings.Join(req.OrderBy, ", "))
 	}
 
-	// Limit and offset
 	if req.Limit > 0 {
 		query = fmt.Sprintf("%s LIMIT %d", query, req.Limit)
 	}
