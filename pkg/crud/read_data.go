@@ -2,26 +2,14 @@ package crud
 
 import (
 	"fmt"
-	"github.com/patrickmn/go-cache"
+	"gocrud/pkg/cache"
 	"gocrud/pkg/models"
 	"gorm.io/gorm"
 	"reflect"
 	"strings"
 )
 
-func ReadData(db *gorm.DB, req *models.QueryRequest) (interface{}, error) {
-	cacheKey := fmt.Sprintf("%v", req)
-	if cachedResult, found := c.Get(cacheKey); found {
-		return cachedResult, nil
-	}
-
-	resultType := reflect.TypeOf(req.Struct)
-	if resultType.Kind() == reflect.Ptr {
-		resultType = resultType.Elem()
-	}
-	resultSlice := reflect.MakeSlice(reflect.SliceOf(resultType), 0, 0)
-	result := reflect.New(resultSlice.Type()).Interface()
-
+func GenerateReadQuery(req *models.QueryRequest) (string, []interface{}) {
 	var conditionStrings []string
 	var params []interface{}
 
@@ -58,11 +46,25 @@ func ReadData(db *gorm.DB, req *models.QueryRequest) (interface{}, error) {
 		query = fmt.Sprintf("%s OFFSET %d", query, req.Offset)
 	}
 
+	return query, params
+}
+
+func ReadData(db *gorm.DB, req *models.QueryRequest) (interface{}, error) {
+	cacheKey := fmt.Sprintf("read:%v", req)
+	cachedResult, found := cache.Get(cacheKey)
+	if found {
+		return cachedResult, nil
+	}
+
+	query, params := GenerateReadQuery(req)
+	result := reflect.New(reflect.TypeOf(req.Struct)).Interface()
 	if err := db.Raw(query, params...).Scan(result).Error; err != nil {
 		return nil, err
 	}
 
-	c.Set(cacheKey, result, cache.DefaultExpiration)
-
+	err := cache.Set(cacheKey, result)
+	if err != nil {
+		return nil, err
+	}
 	return result, nil
 }

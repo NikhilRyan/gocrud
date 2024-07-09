@@ -8,7 +8,7 @@ import (
 
 func UpdateData(db *gorm.DB, tableName, key string, data map[string]interface{}) error {
 	updateSQL := fmt.Sprintf("UPDATE %s SET ", tableName)
-	params := []interface{}{}
+	var params []interface{}
 
 	for col, value := range data {
 		if col != key {

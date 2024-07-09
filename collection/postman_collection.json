@@ -1,0 +1,230 @@
+{
+  "info": {
+    "_postman_id": "d4aef38c-034b-4727-9490-40a6f71a8d68",
+    "name": "GoCrud API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"table\": \"users\",\n    \"key\": \"id\",\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"John Doe\",\n        \"age\": 30\n    }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/create",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "create"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Read",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"table\": \"users\",\n    \"conditions\": {\n        \"age\": 30\n    },\n    \"order_by\": [\"name ASC\"],\n    \"limit\": 10,\n    \"offset\": 0,\n    \"columns\": [\"id\", \"name\", \"age\"]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/read",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "read"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Read With Joins",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"table\": \"orders\",\n    \"joins\": [\n        {\n            \"join_type\": \"INNER\",\n            \"table\": \"users\",\n            \"on_condition\": \"orders.user_id = users.id\",\n            \"selects\": [\"users.name\", \"users.email\"],\n            \"conditions\": {\n                \"users.age\": 30\n            }\n        },\n        {\n            \"join_type\": \"LEFT\",\n            \"table\": \"products\",\n            \"on_condition\": \"orders.product_id = products.id\",\n            \"selects\": [\"products.name AS product_name\"],\n            \"conditions\": {\n                \"products.price >\": 100\n            }\n        }\n    ],\n    \"columns\": [\"orders.id\", \"orders.total\"],\n    \"conditions\": {\n        \"orders.status\": \"completed\"\n    },\n    \"order_by\": [\"orders.date DESC\"],\n    \"limit\": 10,\n    \"offset\": 5\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/read-with-joins",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "read-with-joins"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"table\": \"users\",\n    \"key\": \"id\",\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"Jane Doe\",\n        \"age\": 25\n    }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/update",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "update"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"table\": \"users\",\n    \"key\": \"id\",\n    \"data\": {\n        \"id\": 1\n    }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/delete",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "delete"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Columns Info",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/columns?table=users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "columns"
+          ],
+          "query": [
+            {
+              "key": "table",
+              "value": "users"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Read Query",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"table\": \"users\",\n    \"columns\": [\"id\", \"name\", \"age\"],\n    \"conditions\": {\n        \"age >\": 30\n    },\n    \"order_by\": [\"name ASC\"],\n    \"limit\": 10,\n    \"offset\": 0\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/generate-read-query",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "generate-read-query"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Read With Joins Query",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"table\": \"orders\",\n    \"joins\": [\n        {\n            \"join_type\": \"INNER\",\n            \"table\": \"users\",\n            \"on_condition\": \"orders.user_id = users.id\",\n            \"selects\": [\"users.name\", \"users.email\"],\n            \"conditions\": {\n                \"users.age >\": 30\n            }\n        },\n        {\n            \"join_type\": \"LEFT\",\n            \"table\": \"products\",\n            \"on_condition\": \"orders.product_id = products.id\",\n            \"selects\": [\"products.name AS product_name\"],\n            \"conditions\": {\n                \"products.price >\": 100\n            }\n        }\n    ],\n    \"columns\": [\"orders.id\", \"orders.total\"],\n    \"conditions\": {\n        \"orders.status\": \"completed\"\n    },\n    \"order_by\": [\"orders.date DESC\"],\n    \"limit\": 10,\n    \"offset\": 5\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/generate-read-with-joins-query",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "generate-read-with-joins-query"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

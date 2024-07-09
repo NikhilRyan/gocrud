@@ -33,8 +33,45 @@ func InitMemCache(defaultExpiration, cleanupInterval time.Duration) {
 	memCache = cache.New(defaultExpiration, cleanupInterval)
 }
 
-func GetMemCache() *cache.Cache {
-	return memCache
+// Get retrieves an item from the cache
+func Get(key string) (interface{}, bool) {
+	// Try to get from in-memory cache
+	if cachedData, found := memCache.Get(key); found {
+		return cachedData, true
+	}
+
+	// Try to get from Redis
+	result, err := rdb.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, false
+	} else if err != nil {
+		return nil, false
+	}
+
+	// Convert string back to interface
+	var data interface{}
+	if err := json.Unmarshal([]byte(result), &data); err != nil {
+		return nil, false
+	}
+
+	// Store in in-memory cache
+	memCache.Set(key, data, cache.DefaultExpiration)
+	return data, true
+}
+
+// Set stores an item in both the in-memory cache and Redis
+func Set(key string, data interface{}) error {
+	// Store in in-memory cache
+	memCache.Set(key, data, cache.DefaultExpiration)
+
+	// Convert interface to string for storing in Redis
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	// Store in Redis
+	return rdb.Set(ctx, key, jsonData, 0).Err()
 }
 
 // ReadFromCache handles read requests with Redis and in-memory caching

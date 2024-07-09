@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"gocrud/pkg/cache"
-	"gocrud/pkg/crud"
 	"gocrud/pkg/handlers"
 	"gocrud/pkg/repositories"
 	"gorm.io/driver/sqlite"
@@ -21,7 +20,6 @@ func main() {
 	}
 
 	// Initialize caches
-	crud.InitCache(10*time.Minute, 10*time.Minute)
 	cache.InitMemCache(10*time.Minute, 10*time.Minute)
 	cache.InitRedis("localhost:6379", "", 0)
 
@@ -35,6 +33,8 @@ func main() {
 	router.DELETE("/delete", handlers.DeleteHandler(db))
 	router.GET("/columns", handlers.GetColumnInfoHandler(db))
 	router.GET("/user", handlers.GetUserHandler(userRepository))
+	router.POST("/generate-read-query", handlers.GenerateReadQueryHandler())
+	router.POST("/generate-read-with-joins-query", handlers.GenerateReadWithJoinsQueryHandler())
 
 	err = router.Run(":8080")
 	if err != nil {

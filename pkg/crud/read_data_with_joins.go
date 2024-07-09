@@ -2,29 +2,18 @@ package crud
 
 import (
 	"fmt"
-	"github.com/patrickmn/go-cache"
+	"gocrud/pkg/cache"
 	"gocrud/pkg/models"
 	"gorm.io/gorm"
 	"reflect"
 	"strings"
 )
 
-func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error) {
-	cacheKey := fmt.Sprintf("%v", req)
-	if cachedResult, found := c.Get(cacheKey); found {
-		return cachedResult, nil
-	}
-
-	resultType := reflect.TypeOf(req.Struct)
-	if resultType.Kind() == reflect.Ptr {
-		resultType = resultType.Elem()
-	}
-	resultSlice := reflect.MakeSlice(reflect.SliceOf(resultType), 0, 0)
-	result := reflect.New(resultSlice.Type()).Interface()
-
+func GenerateReadWithJoinsQuery(req *models.JoinRequest) (string, []interface{}) {
 	var conditionStrings []string
 	var params []interface{}
 
+	// Process main table conditions
 	for key, value := range req.Conditions {
 		if strings.Contains(key, " LIKE ") {
 			conditionStrings = append(conditionStrings, fmt.Sprintf("%s ?", key))
@@ -41,7 +30,7 @@ func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error
 		columnsQuery = strings.Join(req.Columns, ", ")
 	}
 
-	joinSelects := []string{}
+	var joinSelects []string
 	for _, join := range req.Joins {
 		if len(join.Selects) > 0 {
 			joinSelects = append(joinSelects, join.Selects...)
@@ -54,7 +43,7 @@ func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error
 	query := fmt.Sprintf("SELECT %s FROM %s", columnsQuery, req.Table)
 
 	for _, join := range req.Joins {
-		joinConditionStrings := []string{}
+		var joinConditionStrings []string
 		for key, value := range join.Conditions {
 			if strings.Contains(key, " LIKE ") {
 				joinConditionStrings = append(joinConditionStrings, fmt.Sprintf("%s ?", key))
@@ -88,11 +77,25 @@ func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error
 		query = fmt.Sprintf("%s OFFSET %d", query, req.Offset)
 	}
 
+	return query, params
+}
+
+func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error) {
+	cacheKey := fmt.Sprintf("read_with_joins:%v", req)
+	cachedResult, found := cache.Get(cacheKey)
+	if found {
+		return cachedResult, nil
+	}
+
+	query, params := GenerateReadWithJoinsQuery(req)
+	result := reflect.New(reflect.TypeOf(req.Struct)).Interface()
 	if err := db.Raw(query, params...).Scan(result).Error; err != nil {
 		return nil, err
 	}
 
-	c.Set(cacheKey, result, cache.DefaultExpiration)
-
+	err := cache.Set(cacheKey, result)
+	if err != nil {
+		return nil, err
+	}
 	return result, nil
 }
