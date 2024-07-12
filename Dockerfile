@@ -1,11 +1,21 @@
-FROM golang:1.17-alpine
+FROM golang:1.18
 
-WORKDIR /app
+# Install necessary tools
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# Set the working directory inside the container
+WORKDIR /workspace
 
-RUN go mod download
+# Copy the current directory contents into the container at /workspace
+COPY . /workspace
 
-RUN go build -o main ./cmd/main.go
+# Download go modules
+RUN go mod tidy
 
-CMD ["./main"]
+# Expose the application on port 8080
+EXPOSE 8080
+
+# Start a shell session by default
+CMD ["bash"]
