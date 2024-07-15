@@ -9,6 +9,22 @@ import (
 	"strings"
 )
 
+func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error) {
+	cacheKey := fmt.Sprintf("read_with_joins:%v", req)
+	result, err := cache.ReadFromCache(cacheKey, req.Struct, func() (interface{}, error) {
+		query, params := GenerateReadWithJoinsQuery(req)
+		result := reflect.New(reflect.SliceOf(reflect.TypeOf(req.Struct).Elem())).Interface()
+		if err := db.Raw(query, params...).Scan(result).Error; err != nil {
+			return nil, err
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func GenerateReadWithJoinsQuery(req *models.JoinRequest) (string, []interface{}) {
 	var conditionStrings []string
 	var params []interface{}
@@ -23,11 +39,9 @@ func GenerateReadWithJoinsQuery(req *models.JoinRequest) (string, []interface{})
 		params = append(params, value)
 	}
 
-	columnsQuery := "*"
-	if req.Struct != nil {
+	columnsQuery := strings.Join(req.Columns, ", ")
+	if req.Struct != nil && len(req.Columns) == 0 {
 		columnsQuery = getStructFields(req.Struct)
-	} else if len(req.Columns) > 0 {
-		columnsQuery = strings.Join(req.Columns, ", ")
 	}
 
 	var joinSelects []string
@@ -78,24 +92,4 @@ func GenerateReadWithJoinsQuery(req *models.JoinRequest) (string, []interface{})
 	}
 
 	return query, params
-}
-
-func ReadDataWithJoins(db *gorm.DB, req *models.JoinRequest) (interface{}, error) {
-	cacheKey := fmt.Sprintf("read_with_joins:%v", req)
-	cachedResult, found := cache.Get(cacheKey)
-	if found {
-		return cachedResult, nil
-	}
-
-	query, params := GenerateReadWithJoinsQuery(req)
-	result := reflect.New(reflect.TypeOf(req.Struct)).Interface()
-	if err := db.Raw(query, params...).Scan(result).Error; err != nil {
-		return nil, err
-	}
-
-	err := cache.Set(cacheKey, result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }

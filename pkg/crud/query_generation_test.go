@@ -14,10 +14,10 @@ func TestGenerateReadQuery(t *testing.T) {
 		OrderBy:    []string{"name ASC"},
 		Limit:      10,
 		Offset:     0,
-		Struct:     nil,
+		Struct:     &[]models.User{},
 	}
 	query, params := GenerateReadQuery(req)
-	expectedQuery := "SELECT id, name, age FROM users WHERE age > = ? ORDER BY name ASC LIMIT 10"
+	expectedQuery := "SELECT id, name, age, email FROM users WHERE age > = ? ORDER BY name ASC LIMIT 10"
 	if query != expectedQuery {
 		t.Errorf("expected query: %s, got: %s", expectedQuery, query)
 	}
@@ -51,7 +51,7 @@ func TestGenerateReadWithJoinsQuery(t *testing.T) {
 		OrderBy:    []string{"orders.date DESC"},
 		Limit:      10,
 		Offset:     5,
-		Struct:     nil,
+		Struct:     &[]models.Order{},
 	}
 	query, params := GenerateReadWithJoinsQuery(req)
 	expectedQuery := "SELECT orders.id, orders.total, users.name, users.email, products.name AS product_name FROM orders INNER JOIN users ON orders.user_id = users.id AND users.age > = ? LEFT JOIN products ON orders.product_id = products.id AND products.price > = ? WHERE orders.status = ? ORDER BY orders.date DESC LIMIT 10 OFFSET 5"

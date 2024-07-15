@@ -81,42 +81,23 @@ func ReadFromCache(keyPattern string, dataStruct interface{}, repoFunc func() (i
 		return nil, err
 	}
 
-	// Try to get from in-memory cache
-	if cachedData, found := memCache.Get(key); found {
+	// Try to get from cache
+	cachedData, found := Get(key)
+	if found {
 		return cachedData, nil
 	}
 
-	// Try to get from Redis
-	result, err := rdb.Get(ctx, key).Result()
-	if errors.Is(err, redis.Nil) {
-		// Cache miss, call the repository function
-		data, err := repoFunc()
-		if err != nil {
-			return nil, err
-		}
+	// Cache miss, call the repository function
+	data, repoErr := repoFunc()
+	if repoErr != nil {
+		return nil, repoErr
+	}
 
-		// Convert data to string for storing in Redis
-		dataStr, err := convertToString(data)
-		if err != nil {
-			return nil, err
-		}
-
-		// Store the result in Redis and in-memory cache
-		if err := rdb.Set(ctx, key, dataStr, 0).Err(); err != nil {
-			return nil, err
-		}
-		memCache.Set(key, data, cache.DefaultExpiration)
-		return data, nil
-	} else if err != nil {
+	// Store the result in cache
+	if err := Set(key, data); err != nil {
 		return nil, err
 	}
 
-	// Cache hit from Redis, convert string back to original type and store in in-memory cache
-	data, err := convertFromString(result, dataStruct)
-	if err != nil {
-		return nil, err
-	}
-	memCache.Set(key, data, cache.DefaultExpiration)
 	return data, nil
 }
 
@@ -146,22 +127,4 @@ func generateKey(keyPattern string, dataStruct interface{}) (string, error) {
 	}
 
 	return key, nil
-}
-
-func convertToString(data interface{}) (string, error) {
-	// Convert data to JSON string
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return "", err
-	}
-	return string(jsonData), nil
-}
-
-func convertFromString(dataStr string, dataStruct interface{}) (interface{}, error) {
-	// Unmarshal the JSON string back to the original type
-	result := reflect.New(reflect.TypeOf(dataStruct).Elem()).Interface()
-	if err := json.Unmarshal([]byte(dataStr), result); err != nil {
-		return nil, err
-	}
-	return result, nil
 }

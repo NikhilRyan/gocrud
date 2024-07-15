@@ -9,6 +9,22 @@ import (
 	"strings"
 )
 
+func ReadData(db *gorm.DB, req *models.QueryRequest) (interface{}, error) {
+	cacheKey := fmt.Sprintf("read:%v", req)
+	result, err := cache.ReadFromCache(cacheKey, req.Struct, func() (interface{}, error) {
+		query, params := GenerateReadQuery(req)
+		result := reflect.New(reflect.SliceOf(reflect.TypeOf(req.Struct).Elem())).Interface()
+		if err := db.Raw(query, params...).Scan(result).Error; err != nil {
+			return nil, err
+		}
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func GenerateReadQuery(req *models.QueryRequest) (string, []interface{}) {
 	var conditionStrings []string
 	var params []interface{}
@@ -47,24 +63,4 @@ func GenerateReadQuery(req *models.QueryRequest) (string, []interface{}) {
 	}
 
 	return query, params
-}
-
-func ReadData(db *gorm.DB, req *models.QueryRequest) (interface{}, error) {
-	cacheKey := fmt.Sprintf("read:%v", req)
-	cachedResult, found := cache.Get(cacheKey)
-	if found {
-		return cachedResult, nil
-	}
-
-	query, params := GenerateReadQuery(req)
-	result := reflect.New(reflect.TypeOf(req.Struct)).Interface()
-	if err := db.Raw(query, params...).Scan(result).Error; err != nil {
-		return nil, err
-	}
-
-	err := cache.Set(cacheKey, result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }

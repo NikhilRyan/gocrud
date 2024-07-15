@@ -15,7 +15,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 }
 
 func (r *userRepositoryImpl) GetUser(userID int) (*models.User, error) {
-	user := &models.User{UserID: userID}
+	user := &models.User{ID: userID}
 	repoFunc := func() (interface{}, error) {
 		var fetchedUser models.User
 		if err := r.db.First(&fetchedUser, userID).Error; err != nil {

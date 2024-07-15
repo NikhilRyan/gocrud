@@ -25,18 +25,37 @@ func detectSQLType(value interface{}) string {
 	}
 }
 
-func getStructFields(obj interface{}) string {
-	t := reflect.TypeOf(obj)
+func getStructFields(dataStruct interface{}) string {
+	val := reflect.ValueOf(dataStruct)
+
+	// Check if it's a pointer to a slice
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	// Check if it's a slice
+	if val.Kind() == reflect.Slice {
+		val = reflect.New(val.Type().Elem()).Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		return "*"
+	}
+
 	var fields []string
+	t := val.Type()
+
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		tag := field.Tag.Get("gorm")
-		if tag != "" && strings.HasPrefix(tag, "column:") {
-			columns := strings.Split(tag, ":")
-			fields = append(fields, columns[1])
-		} else {
-			fields = append(fields, field.Name)
+		if tag != "" {
+			// Extract the column name from the tag
+			tagParts := strings.Split(tag, ":")
+			if len(tagParts) == 2 && tagParts[0] == "column" {
+				fields = append(fields, tagParts[1])
+			}
 		}
 	}
+
 	return strings.Join(fields, ", ")
 }
